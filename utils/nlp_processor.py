@@ -9,22 +9,14 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Download necessary NLTK resources if they don't exist
-try:
-    nltk.data.find('tokenizers/punkt')
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    logger.info("Downloading required NLTK resources...")
-    nltk.download('punkt', quiet=True)
-    nltk.download('stopwords', quiet=True)
+logger.info("Making sure all required NLTK resources are downloaded...")
+nltk.download('punkt', quiet=True)
+nltk.download('stopwords', quiet=True)
+nltk.download('wordnet', quiet=True)
 
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-
-try:
-    nltk.data.find('corpora/wordnet')
-except LookupError:
-    nltk.download('wordnet', quiet=True)
 
 # Domain-specific stopwords
 DOMAIN_STOPWORDS = {
@@ -38,7 +30,7 @@ DOMAIN_STOPWORDS = {
 
 def preprocess_text(text):
     """
-    Preprocess text for NLP analysis
+    Preprocess text for NLP analysis with simple tokenization fallback
     """
     if not isinstance(text, str) or not text:
         return []
@@ -52,18 +44,34 @@ def preprocess_text(text):
     text = re.sub(r'[^\w\s]', ' ', text)
     text = re.sub(r'\s+', ' ', text)
     
-    # Tokenize
-    tokens = word_tokenize(text)
+    try:
+        # Try to use NLTK tokenizer
+        tokens = word_tokenize(text)
+    except Exception as e:
+        logger.warning(f"NLTK word_tokenize failed: {str(e)}. Using simple split instead.")
+        # Simple fallback tokenization
+        tokens = text.split()
     
-    # Get English stopwords and combine with domain-specific ones
-    stop_words = set(stopwords.words('english')).union(DOMAIN_STOPWORDS)
+    try:
+        # Get English stopwords and combine with domain-specific ones
+        stop_words = set(stopwords.words('english')).union(DOMAIN_STOPWORDS)
+    except Exception as e:
+        logger.warning(f"NLTK stopwords failed: {str(e)}. Using basic stopwords.")
+        # Basic English stopwords
+        stop_words = {'the', 'and', 'a', 'to', 'of', 'in', 'is', 'it', 'that', 'for', 'on', 'with', 'as', 'by', 'at'}
+        stop_words.update(DOMAIN_STOPWORDS)
     
     # Remove stopwords and short words
     tokens = [word for word in tokens if word not in stop_words and len(word) > 2]
     
-    # Lemmatize
-    lemmatizer = WordNetLemmatizer()
-    tokens = [lemmatizer.lemmatize(word) for word in tokens]
+    try:
+        # Lemmatize
+        lemmatizer = WordNetLemmatizer()
+        tokens = [lemmatizer.lemmatize(word) for word in tokens]
+    except Exception as e:
+        logger.warning(f"NLTK lemmatization failed: {str(e)}. Using original tokens.")
+        # Just use the tokens as is if lemmatization fails
+        pass
     
     return tokens
 
