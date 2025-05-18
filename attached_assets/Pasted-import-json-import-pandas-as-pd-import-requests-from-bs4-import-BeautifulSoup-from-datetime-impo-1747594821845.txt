@@ -1,0 +1,218 @@
+import json
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+from datetime import datetime
+
+def classify_domain(domain):
+    domain = (domain or '').lower()
+    if 'tech' in domain or 'software' in domain:
+        return 'Technology'
+    elif 'finance' in domain or 'bank' in domain:
+        return 'Finance'
+    elif 'health' in domain or 'med' in domain:
+        return 'Healthcare'
+    elif 'edu' in domain or 'school' in domain:
+        return 'Education'
+    elif 'marketing' in domain or 'media' in domain:
+        return 'Marketing'
+    else:
+        return 'Other'
+
+def scrape_linkedin_company_page(url):
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    try:
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return None
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        name = soup.find('h1')
+        name = name.text.strip() if name else ''
+        desc = soup.find('meta', {'name': 'description'})
+        desc = desc['content'].strip() if desc and desc.has_attr('content') else ''
+        domain = url.split('/')[4] if len(url.split('/')) > 4 else ''
+        website = ''
+        for a in soup.find_all('a', href=True):
+            if 'website' in a.text.lower():
+                website = a['href']
+                break
+        return {
+            'companyLinkedinUrl': url,
+            'name': name,
+            'description': desc,
+            'website': website,
+            'domain': domain,
+            'domain_class': classify_domain(domain)
+        }
+    except Exception:
+        return None
+
+def google_search_linkedin_companies(query):
+    # Mock implementation, replace with actual Google search API call
+    return [
+        "https://uk.linkedin.com/company/example1",
+        "https://uk.linkedin.com/company/example2"
+    ]
+
+# CLI entry point for flexibility
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='Flexible LinkedIn Company Scraper')
+    parser.add_argument('--keywords', type=str, default=None, help='Keywords for search')
+    parser.add_argument('--founded_years', type=str, default=None, help='Comma-separated years')
+    parser.add_argument('--country', type=str, default=None, help='Country')
+    parser.add_argument('--size', type=str, default=None, help='Company size')
+    parser.add_argument('--config_path', type=str, default='scraper_config.json', help='Config file path')
+    parser.add_argument('--max_results', type=int, default=10, help='Max LinkedIn results')
+    parser.add_argument('--user_agent', type=str, default='Mozilla/5.0', help='User agent')
+    parser.add_argument('--timeout', type=int, default=10, help='Request timeout')
+    parser.add_argument('--output_csv', type=str, default=None, help='Output CSV file')
+    parser.add_argument('--sleep_time', type=float, default=1.0, help='Sleep time between requests (seconds)')
+    args = parser.parse_args()
+    founded_years = args.founded_years.split(',') if args.founded_years else None
+    from leads import run_scraper
+    run_scraper(
+        keywords=args.keywords,
+        founded_years=founded_years,
+        country=args.country,
+        size=args.size,
+        config_path=args.config_path,
+        max_results=args.max_results,
+        user_agent=args.user_agent,
+        timeout=args.timeout,
+        output_csv=args.output_csv,
+        sleep_time=args.sleep_time
+    )
+
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+from datetime import datetime
+
+def classify_domain(domain):
+    domain = (domain or '').lower()
+    if 'tech' in domain or 'software' in domain:
+        return 'Technology'
+    elif 'finance' in domain or 'bank' in domain:
+        return 'Finance'
+    elif 'health' in domain or 'med' in domain:
+        return 'Healthcare'
+    elif 'edu' in domain or 'school' in domain:
+        return 'Education'
+    elif 'marketing' in domain or 'media' in domain:
+        return 'Marketing'
+    else:
+        return 'Other'
+
+def scrape_linkedin_company_page(url):
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    try:
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return None
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        name = soup.find('h1')
+        name = name.text.strip() if name else ''
+        desc = soup.find('meta', {'name': 'description'})
+        desc = desc['content'].strip() if desc and desc.has_attr('content') else ''
+        domain = url.split('/')[4] if len(url.split('/')) > 4 else ''
+        website = ''
+        for a in soup.find_all('a', href=True):
+            if 'website' in a.text.lower():
+                website = a['href']
+                break
+        return {
+            'companyLinkedinUrl': url,
+            'name': name,
+            'description': desc,
+            'website': website,
+            'domain': domain,
+            'domain_class': classify_domain(domain)
+        }
+    except Exception:
+        return None
+
+def run_scraper(
+    keywords=None,
+    founded_years=None,
+    country=None,
+    size=None,
+    config_path='scraper_config.json',
+    max_results=10,
+    user_agent='Mozilla/5.0',
+    timeout=10,
+    classifier_mapping=None,
+    output_csv=None,
+    sleep_time=1.0,
+    search_func=None
+):
+    import os
+    import time
+    config = {}
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+    keywords = keywords or config.get('keywords', 'IT services')
+    founded_years = founded_years or config.get('founded_years', ['2015'])
+    country = country or config.get('country', 'United kingdom')
+    size = size or config.get('size', '51-200')
+    query = f"{keywords} companies founded {','.join(founded_years)} in {country} with {size} employees linkedin"
+    print(f"[INFO] Search Query: {query}")
+    urls = []
+    if search_func is not None:
+        urls = search_func(query)
+    else:
+        try:
+            from googlesearch import search
+            for url in search(query):
+                if 'linkedin.com/company/' in url and url not in urls:
+                    urls.append(url)
+                if len(urls) >= max_results:
+                    break
+        except ImportError:
+            urls = [
+                "https://uk.linkedin.com/company/example1",
+                "https://uk.linkedin.com/company/example2"
+            ]
+    print(f"[INFO] Found {len(urls)} LinkedIn company URLs.")
+    results = []
+    for url in urls:
+        data = scrape_linkedin_company_page(
+            url,
+            user_agent=user_agent,
+            timeout=timeout,
+            classifier_mapping=classifier_mapping
+        )
+        if data:
+            results.append(data)
+        time.sleep(sleep_time)
+    df = pd.DataFrame(results)
+    if output_csv:
+        df.to_csv(output_csv, index=False)
+        print(f"[INFO] Results saved to {output_csv}")
+    return df
+
+    now = datetime.now().strftime('%Y%m%d_%H%M%S')
+    df.to_csv(f'leads_{now}.csv', index=False)
+    print(f"[INFO] Saved results to leads_{now}.csv")
+    return df
+
+def handler(request):
+    try:
+        body = request.get_json()
+        keywords = body.get('keywords', 'IT services')
+        founded_years = body.get('founded_years', ['2015'])
+        country = body.get('country', 'United kingdom')
+        size = body.get('size', '51-200')
+        df = run_scraper(keywords, founded_years, country, size)
+        csv_str = df.to_csv(index=False)
+        return {
+            "statusCode": 200,
+            "headers": {"Content-Type": "text/csv"},
+            "body": csv_str
+        }
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": str(e)})
+        }
