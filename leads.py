@@ -11,29 +11,80 @@ from datetime import datetime
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-def classify_domain(domain):
+def classify_domain(domain, company_name='', description=''):
     """
     Classify a company domain into a business category
+    Uses multiple data points: domain name, company name, and description
     """
+    # Ensure we're working with lowercase strings
     domain = (domain or '').lower()
-    if 'tech' in domain or 'software' in domain or 'digital' in domain or 'comp' in domain or 'it' in domain:
-        return 'Technology'
-    elif 'finance' in domain or 'bank' in domain or 'invest' in domain or 'capital' in domain:
-        return 'Finance'
-    elif 'health' in domain or 'med' in domain or 'care' in domain or 'pharm' in domain:
-        return 'Healthcare'
-    elif 'edu' in domain or 'school' in domain or 'college' in domain or 'univ' in domain:
-        return 'Education'
-    elif 'marketing' in domain or 'media' in domain or 'advert' in domain or 'pr' in domain:
-        return 'Marketing'
-    elif 'retail' in domain or 'shop' in domain or 'store' in domain:
-        return 'Retail'
-    elif 'manufact' in domain or 'indust' in domain or 'prod' in domain:
-        return 'Manufacturing'
-    elif 'consult' in domain or 'service' in domain or 'solution' in domain:
-        return 'Consulting'
-    else:
-        return 'Other'
+    company_name = (company_name or '').lower()
+    description = (description or '').lower()
+    
+    # Combined text for better classification
+    combined_text = f"{domain} {company_name} {description}"
+    
+    # Technology
+    tech_keywords = ['tech', 'software', 'digital', 'comp', 'it', 'ai', 'artificial intelligence', 
+                    'data', 'cloud', 'web', 'app', 'mobile', 'dev', 'programming', 'cyber', 'security',
+                    'network', 'internet', 'saas', 'platform', 'online', 'computer', 'technology', 'systems']
+    
+    # Finance
+    finance_keywords = ['finance', 'bank', 'invest', 'capital', 'financial', 'insurance', 'asset',
+                       'wealth', 'money', 'trading', 'payment', 'fintech', 'credit', 'loan', 'accounting']
+    
+    # Healthcare
+    health_keywords = ['health', 'med', 'care', 'pharm', 'doctor', 'hospital', 'clinic', 'therapy',
+                      'wellness', 'patient', 'drug', 'biotech', 'life science', 'diagnostic']
+    
+    # Education
+    edu_keywords = ['edu', 'school', 'college', 'univ', 'learn', 'train', 'course', 'academy',
+                   'study', 'student', 'teach', 'tutoring', 'knowledge', 'skill', 'education']
+    
+    # Marketing
+    marketing_keywords = ['marketing', 'media', 'advert', 'pr', 'brand', 'market', 'campaign',
+                         'content', 'social media', 'seo', 'audience', 'analytics', 'promotion', 'agency']
+    
+    # Retail
+    retail_keywords = ['retail', 'shop', 'store', 'ecommerce', 'commerce', 'consumer', 'product',
+                      'goods', 'sell', 'marketplace', 'customer', 'buy', 'purchase', 'sale']
+    
+    # Manufacturing
+    manufacturing_keywords = ['manufact', 'indust', 'prod', 'factory', 'assembly', 'engineering',
+                             'material', 'equipment', 'machinery', 'construction', 'build', 'hardware']
+    
+    # Consulting
+    consulting_keywords = ['consult', 'service', 'solution', 'advisor', 'strategy', 'management',
+                          'business', 'professional', 'outsource', 'expert', 'specialist']
+    
+    # Count keywords in each category
+    counts = {
+        'Technology': sum(1 for kw in tech_keywords if kw in combined_text),
+        'Finance': sum(1 for kw in finance_keywords if kw in combined_text),
+        'Healthcare': sum(1 for kw in health_keywords if kw in combined_text),
+        'Education': sum(1 for kw in edu_keywords if kw in combined_text),
+        'Marketing': sum(1 for kw in marketing_keywords if kw in combined_text),
+        'Retail': sum(1 for kw in retail_keywords if kw in combined_text),
+        'Manufacturing': sum(1 for kw in manufacturing_keywords if kw in combined_text),
+        'Consulting': sum(1 for kw in consulting_keywords if kw in combined_text)
+    }
+    
+    # Get the category with the highest count
+    max_count = max(counts.values())
+    
+    # If we found at least one keyword, return the category with the most matches
+    if max_count > 0:
+        # If there's a tie, prioritize certain categories
+        max_categories = [cat for cat, count in counts.items() if count == max_count]
+        if len(max_categories) > 1:
+            # Prioritize Technology, then Finance, then Healthcare
+            for priority in ['Technology', 'Finance', 'Healthcare', 'Consulting']:
+                if priority in max_categories:
+                    return priority
+        return max(counts, key=counts.get)
+    
+    # Default to 'Other' if no keywords match
+    return 'Other'
 
 def scrape_linkedin_company_page(url, user_agent='Mozilla/5.0', timeout=10):
     """
@@ -89,13 +140,16 @@ def scrape_linkedin_company_page(url, user_agent='Mozilla/5.0', timeout=10):
                 founded = p.text.strip()
                 break
         
+        # Use improved domain classification with multiple data points
+        domain_class = classify_domain(domain, name, desc)
+        
         return {
             'companyLinkedinUrl': url,
             'name': name,
             'description': desc,
             'website': website,
             'domain': domain,
-            'domain_class': classify_domain(domain),
+            'domain_class': domain_class,
             'size': size,
             'location': location,
             'founded': founded,

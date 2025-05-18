@@ -86,12 +86,17 @@
                     </div>
                     <div class="card-footer">
                         <div class="d-flex align-items-center justify-content-between">
-                            <small class="text-muted">Results will be saved to lead1.csv</small>
-                            {% if csv_exists %}
-                                <a href="{{ url_for('download') }}" class="btn btn-sm btn-secondary">
-                                    <i class="bi bi-download me-1"></i>Download Previous Results
+                            <small class="text-muted">Results will be saved to lead1.csv and database</small>
+                            <div>
+                                {% if csv_exists %}
+                                    <a href="{{ url_for('download') }}" class="btn btn-sm btn-secondary me-2">
+                                        <i class="bi bi-download me-1"></i>Download CSV
+                                    </a>
+                                {% endif %}
+                                <a href="{{ url_for('view_companies') }}" class="btn btn-sm btn-info">
+                                    <i class="bi bi-database me-1"></i>View Database
                                 </a>
-                            {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>

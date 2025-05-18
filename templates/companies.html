@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Companies Database</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <div>
+                            <i class="bi bi-database me-2 text-info"></i>
+                            <h3 class="m-0 d-inline">Company Database</h3>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('index') }}" class="btn btn-sm btn-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Back to Scraper
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        
+                        {% if companies %}
+                            <div class="mb-3">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input type="text" class="form-control" id="filterCompanies" placeholder="Filter companies...">
+                                </div>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Company Name</th>
+                                            <th>Domain</th>
+                                            <th>Industry</th>
+                                            <th>Technologies</th>
+                                            <th>Location</th>
+                                            <th>Founded</th>
+                                            <th>Sentiment</th>
+                                            <th>Scraped At</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for company in companies %}
+                                        <tr>
+                                            <td>{{ company.id }}</td>
+                                            <td>{{ company.name }}</td>
+                                            <td>{{ company.domain }}</td>
+                                            <td>{{ company.domain_class }}</td>
+                                            <td>{{ company.technologies }}</td>
+                                            <td>{{ company.location }}</td>
+                                            <td>{{ company.founded }}</td>
+                                            <td>
+                                                {% if company.sentiment == 'positive' %}
+                                                    <span class="badge bg-success">Positive</span>
+                                                {% elif company.sentiment == 'negative' %}
+                                                    <span class="badge bg-danger">Negative</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Neutral</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ company.scraped_at }}</td>
+                                            <td>
+                                                <a href="{{ company.companyLinkedinUrl }}" target="_blank" class="btn btn-sm btn-outline-info">
+                                                    <i class="bi bi-linkedin"></i>
+                                                </a>
+                                                {% if company.website %}
+                                                <a href="{{ company.website }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="bi bi-globe"></i>
+                                                </a>
+                                                {% endif %}
+                                                <button class="btn btn-sm btn-outline-primary" 
+                                                    data-bs-toggle="collapse" 
+                                                    data-bs-target="#description-{{ company.id }}" 
+                                                    aria-expanded="false">
+                                                    <i class="bi bi-info-circle"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr class="collapse description-row" id="description-{{ company.id }}">
+                                            <td colspan="10" class="bg-dark">
+                                                <div class="p-3">
+                                                    <h5>Description:</h5>
+                                                    <p>{{ company.description }}</p>
+                                                    <h6>Keywords:</h6>
+                                                    <p>{{ company.keywords }}</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <p class="text-muted">Total Companies: {{ companies|length }}</p>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle-fill me-2"></i>
+                                No companies found in the database yet. Use the scraper to add companies.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Filter companies table
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterInput = document.getElementById('filterCompanies');
+            if(filterInput) {
+                filterInput.addEventListener('input', function() {
+                    const filterValue = this.value.toLowerCase();
+                    const rows = document.querySelectorAll('.table tbody tr:not(.description-row)');
+                    
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        const descriptionRow = document.getElementById('description-' + row.cells[0].textContent);
+                        
+                        if(text.includes(filterValue)) {
+                            row.style.display = '';
+                            if(descriptionRow) {
+                                descriptionRow.classList.remove('d-none');
+                            }
+                        } else {
+                            row.style.display = 'none';
+                            if(descriptionRow) {
+                                descriptionRow.classList.add('d-none');
+                            }
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
