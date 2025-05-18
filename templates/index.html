@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Company Scraper</title>
+    <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-10 mx-auto">
+                <div class="card shadow">
+                    <div class="card-header d-flex align-items-center">
+                        <i class="bi bi-linkedin me-2 text-info"></i>
+                        <h3 class="m-0">LinkedIn Company Scraper</h3>
+                    </div>
+                    <div class="card-body">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <form action="{{ url_for('scrape') }}" method="post">
+                            <div class="mb-3">
+                                <label for="keywords" class="form-label">Keywords</label>
+                                <input type="text" class="form-control" id="keywords" name="keywords" value="{{ config.get('keywords', 'IT services') }}" required>
+                                <div class="form-text">Industry, technology, or service keywords</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="founded_years" class="form-label">Founded Years</label>
+                                <input type="text" class="form-control" id="founded_years" name="founded_years" value="{{ ','.join(config.get('founded_years', ['2015'])) }}">
+                                <div class="form-text">Comma-separated list of years (e.g., 2015,2016,2017)</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="country" class="form-label">Country</label>
+                                <input type="text" class="form-control" id="country" name="country" value="{{ config.get('country', 'United kingdom') }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="size" class="form-label">Company Size</label>
+                                <select class="form-select" id="size" name="size">
+                                    <option value="1-10" {% if config.get('size') == '1-10' %}selected{% endif %}>1-10 employees</option>
+                                    <option value="11-50" {% if config.get('size') == '11-50' %}selected{% endif %}>11-50 employees</option>
+                                    <option value="51-200" {% if config.get('size') == '51-200' or not config.get('size') %}selected{% endif %}>51-200 employees</option>
+                                    <option value="201-500" {% if config.get('size') == '201-500' %}selected{% endif %}>201-500 employees</option>
+                                    <option value="501-1000" {% if config.get('size') == '501-1000' %}selected{% endif %}>501-1000 employees</option>
+                                    <option value="1001-5000" {% if config.get('size') == '1001-5000' %}selected{% endif %}>1001-5000 employees</option>
+                                    <option value="5001-10000" {% if config.get('size') == '5001-10000' %}selected{% endif %}>5001-10000 employees</option>
+                                    <option value="10001+" {% if config.get('size') == '10001+' %}selected{% endif %}>10001+ employees</option>
+                                </select>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="max_results" class="form-label">Max Results</label>
+                                        <input type="number" class="form-control" id="max_results" name="max_results" value="{{ config.get('max_results', 10) }}" min="1" max="100">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="sleep_time" class="form-label">Sleep Time (seconds)</label>
+                                        <input type="number" class="form-control" id="sleep_time" name="sleep_time" value="{{ config.get('sleep_time', 1.0) }}" min="0.5" max="10" step="0.5">
+                                        <div class="form-text">Delay between requests to avoid rate limiting</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search me-2"></i>Scrape LinkedIn Companies
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <small class="text-muted">Results will be saved to lead1.csv</small>
+                            {% if csv_exists %}
+                                <a href="{{ url_for('download') }}" class="btn btn-sm btn-secondary">
+                                    <i class="bi bi-download me-1"></i>Download Previous Results
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
