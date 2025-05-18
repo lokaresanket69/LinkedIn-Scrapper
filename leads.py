@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 def classify_domain(domain, company_name='', description=''):
     """
-    Classify a company domain into a business category
+    Classify a company domain into specific business categories
     Uses multiple data points: domain name, company name, and description
     """
     # Ensure we're working with lowercase strings
@@ -24,67 +24,88 @@ def classify_domain(domain, company_name='', description=''):
     # Combined text for better classification
     combined_text = f"{domain} {company_name} {description}"
     
-    # Technology
-    tech_keywords = ['tech', 'software', 'digital', 'comp', 'it', 'ai', 'artificial intelligence', 
-                    'data', 'cloud', 'web', 'app', 'mobile', 'dev', 'programming', 'cyber', 'security',
-                    'network', 'internet', 'saas', 'platform', 'online', 'computer', 'technology', 'systems']
-    
-    # Finance
-    finance_keywords = ['finance', 'bank', 'invest', 'capital', 'financial', 'insurance', 'asset',
-                       'wealth', 'money', 'trading', 'payment', 'fintech', 'credit', 'loan', 'accounting']
-    
-    # Healthcare
-    health_keywords = ['health', 'med', 'care', 'pharm', 'doctor', 'hospital', 'clinic', 'therapy',
-                      'wellness', 'patient', 'drug', 'biotech', 'life science', 'diagnostic']
-    
-    # Education
-    edu_keywords = ['edu', 'school', 'college', 'univ', 'learn', 'train', 'course', 'academy',
-                   'study', 'student', 'teach', 'tutoring', 'knowledge', 'skill', 'education']
-    
-    # Marketing
-    marketing_keywords = ['marketing', 'media', 'advert', 'pr', 'brand', 'market', 'campaign',
-                         'content', 'social media', 'seo', 'audience', 'analytics', 'promotion', 'agency']
-    
-    # Retail
-    retail_keywords = ['retail', 'shop', 'store', 'ecommerce', 'commerce', 'consumer', 'product',
-                      'goods', 'sell', 'marketplace', 'customer', 'buy', 'purchase', 'sale']
-    
-    # Manufacturing
-    manufacturing_keywords = ['manufact', 'indust', 'prod', 'factory', 'assembly', 'engineering',
-                             'material', 'equipment', 'machinery', 'construction', 'build', 'hardware']
-    
-    # Consulting
-    consulting_keywords = ['consult', 'service', 'solution', 'advisor', 'strategy', 'management',
-                          'business', 'professional', 'outsource', 'expert', 'specialist']
-    
-    # Count keywords in each category
-    counts = {
-        'Technology': sum(1 for kw in tech_keywords if kw in combined_text),
-        'Finance': sum(1 for kw in finance_keywords if kw in combined_text),
-        'Healthcare': sum(1 for kw in health_keywords if kw in combined_text),
-        'Education': sum(1 for kw in edu_keywords if kw in combined_text),
-        'Marketing': sum(1 for kw in marketing_keywords if kw in combined_text),
-        'Retail': sum(1 for kw in retail_keywords if kw in combined_text),
-        'Manufacturing': sum(1 for kw in manufacturing_keywords if kw in combined_text),
-        'Consulting': sum(1 for kw in consulting_keywords if kw in combined_text)
+    # Define specific industry categories with their keywords
+    industry_categories = {
+        # IT & Tech Services
+        'Cloud Services': ['cloud', 'aws', 'azure', 'gcp', 'hosting', 'iaas', 'paas', 'saas'],
+        'IT Services': ['it service', 'tech support', 'helpdesk', 'managed service', 'infrastructure', 'network', 'system'],
+        'Software Development': ['software', 'development', 'programming', 'code', 'developer', 'app development'],
+        'Digital Transformation': ['digital transformation', 'digitization', 'digital strategy', 'digital solution'],
+        'Cybersecurity': ['cyber', 'security', 'threat', 'encryption', 'firewall', 'protection', 'data security'],
+        'Data Analytics': ['data', 'analytics', 'big data', 'business intelligence', 'bi', 'data science'],
+        'AI & Machine Learning': ['ai', 'machine learning', 'artificial intelligence', 'ml', 'neural', 'nlp', 'deep learning'],
+        
+        # Finance
+        'Financial Services': ['financial', 'finance', 'banking', 'investment', 'wealth management'],
+        'FinTech': ['fintech', 'payment', 'transaction', 'digital payment', 'banking tech', 'financial technology'],
+        'Investment Banking': ['investment bank', 'capital market', 'ipo', 'merger', 'acquisition'],
+        'Insurance': ['insurance', 'policy', 'risk management', 'underwriting', 'claim'],
+        
+        # Healthcare
+        'Healthcare Services': ['healthcare', 'medical', 'health service', 'patient care', 'clinic'],
+        'HealthTech': ['healthtech', 'health tech', 'medical technology', 'ehealth', 'health platform'],
+        'Pharmaceutical': ['pharma', 'pharmaceutical', 'drug', 'medicine', 'therapeutic'],
+        'Biotech': ['biotech', 'biotechnology', 'life science', 'genomic', 'biological'],
+        
+        # Marketing & Media
+        'Digital Marketing': ['digital marketing', 'seo', 'sem', 'content marketing', 'social media marketing'],
+        'Advertising': ['advertising', 'ad agency', 'adtech', 'media buying', 'programmatic'],
+        'PR & Communications': ['pr', 'public relations', 'communication', 'media relation'],
+        'Media & Entertainment': ['media', 'entertainment', 'streaming', 'publishing', 'broadcast'],
+        
+        # Other Industries
+        'E-commerce': ['ecommerce', 'e-commerce', 'online store', 'online retail', 'webshop'],
+        'Retail': ['retail', 'store', 'merchant', 'shop', 'consumer goods'],
+        'Manufacturing': ['manufacturing', 'production', 'factory', 'industrial', 'assembly'],
+        'Consulting': ['consulting', 'consultancy', 'advisor', 'business consultant'],
+        'Education': ['education', 'learning', 'school', 'university', 'training', 'edtech'],
+        'Real Estate': ['real estate', 'property', 'realty', 'building', 'construction', 'proptech'],
+        'Legal Services': ['legal', 'law firm', 'attorney', 'lawyer', 'legal service'],
+        'Transportation & Logistics': ['transport', 'logistics', 'shipping', 'delivery', 'supply chain'],
+        'Energy': ['energy', 'power', 'utility', 'electricity', 'renewable', 'oil', 'gas'],
+        'Telecom': ['telecom', 'telecommunication', 'cellular', 'network provider', 'mobile carrier']
     }
     
-    # Get the category with the highest count
-    max_count = max(counts.values())
+    # Calculate relevance scores for each industry
+    scores = {}
+    for industry, keywords in industry_categories.items():
+        # Count how many keywords from this industry appear in the text
+        industry_score = 0
+        for keyword in keywords:
+            if keyword in combined_text:
+                industry_score += 1
+                
+                # Add bonus points for exact matches in name or domain
+                if keyword in domain or keyword in company_name:
+                    industry_score += 2
+                    
+                # Add bonus for phrases (keywords with spaces)
+                if ' ' in keyword and keyword in combined_text:
+                    industry_score += 3
+        
+        if industry_score > 0:
+            scores[industry] = industry_score
     
-    # If we found at least one keyword, return the category with the most matches
-    if max_count > 0:
-        # If there's a tie, prioritize certain categories
-        max_categories = [cat for cat, count in counts.items() if count == max_count]
-        if len(max_categories) > 1:
-            # Prioritize Technology, then Finance, then Healthcare
-            for priority in ['Technology', 'Finance', 'Healthcare', 'Consulting']:
-                if priority in max_categories:
-                    return priority
-        return max(counts, key=counts.get)
+    # If no industry matched, try to determine a general category
+    if not scores:
+        # General categories as fallback
+        general_categories = {
+            'Technology': ['tech', 'software', 'digital', 'comp', 'it', 'app', 'online', 'computer', 'technology', 'systems'],
+            'Financial Services': ['finance', 'bank', 'invest', 'capital', 'financial', 'insurance', 'asset', 'money'],
+            'Healthcare': ['health', 'med', 'care', 'doctor', 'hospital', 'clinic', 'therapy', 'wellness', 'patient'],
+            'Professional Services': ['service', 'solution', 'consulting', 'professional', 'management', 'advisor']
+        }
+        
+        for category, keywords in general_categories.items():
+            category_score = sum(1 for kw in keywords if kw in combined_text)
+            if category_score > 0:
+                scores[category] = category_score
     
-    # Default to 'Other' if no keywords match
-    return 'Other'
+    # Return the industry with the highest score, or Other if none found
+    if scores:
+        return max(scores, key=scores.get)
+    else:
+        return 'Other'
 
 def scrape_linkedin_company_page(url, user_agent='Mozilla/5.0', timeout=10):
     """
